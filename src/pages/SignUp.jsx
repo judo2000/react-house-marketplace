@@ -113,7 +113,7 @@ function SignUp() {
         </form>
         {/* Google OAuth */}
 
-        <Link to='/sign-in' classNme='registerLink'>
+        <Link to='/sign-in' className='registerLink'>
           Sign In Instead
         </Link>
       </div>
