@@ -6,13 +6,15 @@ import {
   uploadBytesResumable,
   getDownloadURL,
 } from "firebase/storage";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase.config";
-import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
-import Spinner from "../components/Spinner";
 import { toast } from "react-toastify";
+import { v4 as uuidv4 } from "uuid";
+import Spinner from "../components/Spinner";
 
 function CreateListing() {
+  // eslint-disable-next-line
   const [geolocationEnabled, setGeolocationEnabled] = useState(true);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -75,13 +77,13 @@ function CreateListing() {
 
     if (discountedPrice >= regularPrice) {
       setLoading(false);
-      toast.error("Discounted price must be less than reqular price!");
+      toast.error("Discounted price needs to be less than regular price");
       return;
     }
 
     if (images.length > 6) {
       setLoading(false);
-      toast.error("Max, 6 images");
+      toast.error("Max 6 images");
       return;
     }
 
@@ -94,13 +96,15 @@ function CreateListing() {
       );
 
       const data = await response.json();
+
       geolocation.lat = data.results[0]?.geometry.location.lat ?? 0;
       geolocation.lng = data.results[0]?.geometry.location.lng ?? 0;
+
       location =
         data.status === "ZERO_RESULTS"
           ? undefined
           : data.results[0]?.formatted_address;
-      console.log(location);
+
       if (location === undefined || location.includes("undefined")) {
         setLoading(false);
         toast.error("Please enter a correct address");
@@ -109,10 +113,9 @@ function CreateListing() {
     } else {
       geolocation.lat = latitude;
       geolocation.lng = longitude;
-      location = address;
     }
 
-    // store image in firebase
+    // Store image in firebase
     const storeImage = async (image) => {
       return new Promise((resolve, reject) => {
         const storage = getStorage();
@@ -153,7 +156,7 @@ function CreateListing() {
       });
     };
 
-    const imgUrls = await Promise.all(
+    const imageUrls = await Promise.all(
       [...images].map((image) => storeImage(image))
     ).catch(() => {
       setLoading(false);
@@ -161,10 +164,22 @@ function CreateListing() {
       return;
     });
 
-    console.log(imgUrls);
-    console.log(imgUrls);
+    const formDataCopy = {
+      ...formData,
+      imageUrls,
+      geolocation,
+      timestamp: serverTimestamp(),
+    };
 
+    formDataCopy.location = address;
+    delete formDataCopy.images;
+    delete formDataCopy.address;
+    !formDataCopy.offer && delete formDataCopy.discountedPrice;
+
+    const docRef = await addDoc(collection(db, "listings"), formDataCopy);
     setLoading(false);
+    toast.success("Listing saved");
+    navigate(`/category/${formDataCopy.type}/${docRef.id}`);
   };
 
   const onMutate = (e) => {
@@ -173,19 +188,19 @@ function CreateListing() {
     if (e.target.value === "true") {
       boolean = true;
     }
-
     if (e.target.value === "false") {
       boolean = false;
     }
 
-    // files
+    // Files
     if (e.target.files) {
       setFormData((prevState) => ({
         ...prevState,
         images: e.target.files,
       }));
     }
-    // text/ bolean/numbers
+
+    // Text/Booleans/Numbers
     if (!e.target.files) {
       setFormData((prevState) => ({
         ...prevState,
@@ -197,14 +212,16 @@ function CreateListing() {
   if (loading) {
     return <Spinner />;
   }
+
   return (
     <div className='profile'>
       <header>
-        <p className='pageHeader'>Create a listing</p>
+        <p className='pageHeader'>Create a Listing</p>
       </header>
+
       <main>
         <form onSubmit={onSubmit}>
-          <label className='formLabel'>Sell/Rent</label>
+          <label className='formLabel'>Sell / Rent</label>
           <div className='formButtons'>
             <button
               type='button'
@@ -229,6 +246,7 @@ function CreateListing() {
           <label className='formLabel'>Name</label>
           <input
             className='formInputName'
+            type='text'
             id='name'
             value={name}
             onChange={onMutate}
