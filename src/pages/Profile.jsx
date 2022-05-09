@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { getAuth, updateEmail, updateProfile } from "firebase/auth";
+import { getAuth, updateProfile } from "firebase/auth";
 import {
   updateDoc,
   doc,
@@ -12,21 +12,17 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import { db } from "../firebase.config";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import ListingItem from "../components/ListingItem";
 import arrowRight from "../assets/svg/keyboardArrowRightIcon.svg";
 import homeIcon from "../assets/svg/homeIcon.svg";
 
-import { useNavigate } from "react-router-dom";
-
 function Profile() {
   const auth = getAuth();
-
   const [loading, setLoading] = useState(true);
   const [listings, setListings] = useState(null);
-
   const [changeDetails, setChangeDetails] = useState(false);
-
   const [formData, setFormData] = useState({
     name: auth.currentUser.displayName,
     email: auth.currentUser.email,
@@ -39,19 +35,16 @@ function Profile() {
   useEffect(() => {
     const fetchUserListings = async () => {
       const listingsRef = collection(db, "listings");
+
       const q = query(
         listingsRef,
-        where(
-          "userRef",
-          "==",
-          auth.currentUser.uid,
-          orderBy("timestamp"),
-          "desc"
-        )
+        where("userRef", "==", auth.currentUser.uid),
+        orderBy("timestamp", "desc")
       );
+
       const querySnap = await getDocs(q);
 
-      const listings = [];
+      let listings = [];
 
       querySnap.forEach((doc) => {
         return listings.push({
@@ -75,24 +68,20 @@ function Profile() {
   const onSubmit = async () => {
     try {
       if (auth.currentUser.displayName !== name) {
-        // update display name in fb
+        // Update display name in fb
         await updateProfile(auth.currentUser, {
           displayName: name,
         });
-      }
 
-      if (auth.currentUser.email !== email) {
-        await updateEmail(auth.currentUser, email);
+        // Update in firestore
+        const userRef = doc(db, "users", auth.currentUser.uid);
+        await updateDoc(userRef, {
+          name,
+        });
       }
-
-      // update in firestore
-      const userRef = doc(db, "users", auth.currentUser.uid);
-      await updateDoc(userRef, {
-        name,
-        email,
-      });
     } catch (error) {
-      toast.error("Could not update profile details.");
+      console.log(error);
+      toast.error("Could not update profile details");
     }
   };
 
@@ -113,6 +102,8 @@ function Profile() {
       toast.success("Successfully deleted listing");
     }
   };
+
+  const onEdit = (listingId) => navigate(`/edit-listing/${listingId}`);
 
   return (
     <div className='profile'>
@@ -147,7 +138,6 @@ function Profile() {
               value={name}
               onChange={onChange}
             />
-
             <input
               type='text'
               id='email'
@@ -160,8 +150,8 @@ function Profile() {
         </div>
 
         <Link to='/create-listing' className='createListing'>
-          <img src={homeIcon} alt='Home' />
-          <p>Sell or rent your home.</p>
+          <img src={homeIcon} alt='home' />
+          <p>Sell or rent your home</p>
           <img src={arrowRight} alt='arrow right' />
         </Link>
 
@@ -175,6 +165,7 @@ function Profile() {
                   listing={listing.data}
                   id={listing.id}
                   onDelete={() => onDelete(listing.id)}
+                  onEdit={() => onEdit(listing.id)}
                 />
               ))}
             </ul>

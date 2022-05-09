@@ -42,27 +42,20 @@ function Listing() {
   }
   return (
     <main>
-      <Swiper
-        modules={[Navigation, Pagination, Scrollbar, A11y]}
-        slidesPerView={1}
-        pagination={{ clickable: true }}
-        navigation
-        style={{ height: "300px" }}
-      >
-        {listing.imageUrls.map((url, index) => {
-          return (
-            <SwiperSlide key={index}>
-              <div
-                className='swiperSlideDiv'
-                style={{
-                  background: `url(${listing.imageUrls[index]}) center no-repeat`,
-                  backgroundSize: "cover",
-                }}
-              ></div>
-            </SwiperSlide>
-          );
-        })}
+      <Swiper slidesPerView={1} pagination={{ clickable: true }}>
+        {listing.imageUrls.map((url, index) => (
+          <SwiperSlide key={index}>
+            <div
+              style={{
+                background: `url(${listing.imageUrls[index]}) center no-repeat`,
+                backgroundSize: "cover",
+              }}
+              className='swiperSlideDiv'
+            ></div>
+          </SwiperSlide>
+        ))}
       </Swiper>
+
       <div
         className='shareIconDiv'
         onClick={() => {
@@ -73,11 +66,11 @@ function Listing() {
           }, 2000);
         }}
       >
-        <img src={shareIcon} alt='share' />
+        <img src={shareIcon} alt='' />
       </div>
-      {shareLinkCopied && (
-        <p className='linkCopied'>Link copied to clipboard</p>
-      )}
+
+      {shareLinkCopied && <p className='linkCopied'>Link Copied!</p>}
+
       <div className='listingDetails'>
         <p className='listingName'>
           {listing.name} - $
@@ -91,15 +84,11 @@ function Listing() {
         </p>
         <p className='listingLocation'>{listing.location}</p>
         <p className='listingType'>
-          For {listing.type === "rent" ? "rent" : "sale"}
+          For {listing.type === "rent" ? "Rent" : "Sale"}
         </p>
         {listing.offer && (
           <p className='discountPrice'>
-            $
-            {(listing.regularPrice - listing.discountedPrice)
-              .toString()
-              .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}{" "}
-            discount
+            ${listing.regularPrice - listing.discountedPrice} discount
           </p>
         )}
 
@@ -117,7 +106,9 @@ function Listing() {
           <li>{listing.parking && "Parking Spot"}</li>
           <li>{listing.furnished && "Furnished"}</li>
         </ul>
+
         <p className='listingLocationTitle'>Location</p>
+
         <div className='leafletContainer'>
           <MapContainer
             style={{ height: "100%", width: "100%" }}
